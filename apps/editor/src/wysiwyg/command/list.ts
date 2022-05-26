@@ -162,17 +162,19 @@ function getBeforeLineListItem(doc: ProsemirrorNode, offset: number) {
   return findListItem(endListItemPos);
 }
 
-function changeListTypeToTask(tr: Transaction, { $from, $to }: NodeRange) {
+function transformListItemsInRange(
+  tr: Transaction,
+  { $from, $to }: NodeRange,
+  transformation: (listItem: { offset: number; node: ProsemirrorNode; depth: number }) => void
+): Transaction {
   const startListItem = findListItem($from);
   let endListItem = findListItem($to);
 
   if (startListItem && endListItem) {
     while (endListItem) {
-      const { offset, node } = endListItem;
+      const { offset, node, depth } = endListItem;
 
-      const attrs = { task: !node.attrs.task, checked: false };
-
-      tr.setNodeMarkup(offset, null, attrs);
+      transformation({ offset, node, depth });
 
       if (offset === startListItem.offset) {
         break;
@@ -185,35 +187,28 @@ function changeListTypeToTask(tr: Transaction, { $from, $to }: NodeRange) {
   return tr;
 }
 
-function changeListTypeTo(tr: Transaction, { $from, $to }: NodeRange, list: NodeType) {
-  const startListItem = findListItem($from);
-  let endListItem = findListItem($to);
+function toggleListTypeToTask(tr: Transaction, range: NodeRange) {
+  return transformListItemsInRange(tr, range, ({ offset, node }) => {
+    const attrs = { task: !node.attrs.task, checked: false };
 
-  if (startListItem && endListItem) {
-    while (endListItem) {
-      const { offset, node, depth } = endListItem;
+    tr.setNodeMarkup(offset, null, attrs);
+  });
+}
 
-      if (node.attrs.task) {
-        tr.setNodeMarkup(offset, null, { task: false, checked: false });
-      }
-
-      const resolvedPos = tr.doc.resolve(offset);
-
-      if (resolvedPos.parent!.type !== list) {
-        const parentOffset = resolvedPos.before(depth - 1);
-
-        tr.setNodeMarkup(parentOffset, list);
-      }
-
-      if (offset === startListItem.offset) {
-        break;
-      }
-
-      endListItem = getBeforeLineListItem(tr.doc, offset);
+function changeListTypeTo(tr: Transaction, range: NodeRange, list: NodeType) {
+  return transformListItemsInRange(tr, range, ({ offset, node, depth }) => {
+    if (node.attrs.task) {
+      tr.setNodeMarkup(offset, null, { task: false, checked: false });
     }
-  }
 
-  return tr;
+    const resolvedPos = tr.doc.resolve(offset);
+
+    if (resolvedPos.parent!.type !== list) {
+      const parentOffset = resolvedPos.before(depth - 1);
+
+      tr.setNodeMarkup(parentOffset, list);
+    }
+  });
 }
 
 export function changeListTo(list: NodeType): Command {
@@ -235,15 +230,34 @@ export function changeListTo(list: NodeType): Command {
   };
 }
 
-export function changeListToTask(): Command {
+export function toggleListToTask(): Command {
   return ({ selection, tr, schema }, dispatch) => {
     const { $from, $to } = selection;
     const range = $from.blockRange($to);
 
     if (range) {
       const newTr = isInListNode($from)
-        ? changeListTypeToTask(tr, range)
+        ? toggleListTypeToTask(tr, range)
         : changeToList(tr, range, schema.nodes.bulletList, { task: true });
+
+      dispatch!(newTr);
+
+      return true;
+    }
+
+    return false;
+  };
+}
+
+export function toggleTask(): Command {
+  return ({ selection, tr }, dispatch) => {
+    const { $from, $to } = selection;
+    const range = $from.blockRange($to);
+
+    if (range) {
+      const newTr = transformListItemsInRange(tr, range, ({ offset, node }) => {
+        tr.setNodeMarkup(offset, null, { ...node.attrs, checked: !node.attrs.checked });
+      });
 
       dispatch!(newTr);
 
