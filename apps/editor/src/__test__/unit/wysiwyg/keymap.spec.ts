@@ -544,7 +544,7 @@ describe('keymap', () => {
       setContent(html);
       wwe.setSelection(2); // in list item
 
-      forceKeymapFn('bulletList', 'toTaskList');
+      forceKeymapFn('bulletList', 'toggleTaskList');
 
       const expected = oneLineTrim`
         <ul>
@@ -570,6 +570,50 @@ describe('keymap', () => {
       const expected = oneLineTrim`
         <ul>
           <li><p>item</p></li>
+        </ul>
+      `;
+
+      expect(wwe.getHTML()).toBe(expected);
+    });
+
+    it('should toggle single bullet task list state', () => {
+      html = oneLineTrim`
+        <ul>
+          <li class="task-list-item" data-task="true"><p>item</p></li>
+        </ul>
+      `;
+
+      setContent(html);
+      wwe.setSelection(2); // in list item
+
+      forceKeymapFn('bulletList', 'toggleTask');
+
+      const expected = oneLineTrim`
+        <ul>
+          <li class="task-list-item checked" data-task="true" data-task-checked="true"><p>item</p></li>
+        </ul>
+      `;
+
+      expect(wwe.getHTML()).toBe(expected);
+    });
+
+    it('should toggle multiple bullets task list state', () => {
+      html = oneLineTrim`
+        <ul>
+          <li class="task-list-item" data-task="true"><p>item1</p></li>
+          <li class="task-list-item checked" data-task="true" data-task-checked="true"><p>item2</p></li>
+        </ul>
+      `;
+
+      setContent(html);
+      wwe.setSelection(2, 11); // in both list items
+
+      forceKeymapFn('bulletList', 'toggleTask');
+
+      const expected = oneLineTrim`
+        <ul>
+          <li class="task-list-item checked" data-task="true" data-task-checked="true"><p>item1</p></li>
+          <li class="task-list-item" data-task="true"><p>item2</p></li>
         </ul>
       `;
 
