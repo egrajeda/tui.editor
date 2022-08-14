@@ -35,36 +35,23 @@ export class BulletList extends NodeSchema {
     return (state, dispatch) => changeListTo(state.schema.nodes.bulletList)(state, dispatch);
   }
 
-  private toggleTaskList(): Command {
-    return toggleListToTask();
-  }
-
-  private toggleTask(): Command {
-    return toggleTask();
-  }
-
   commands() {
     return {
       bulletList: this.toBulletList,
       taskList: toggleListToTask,
+      toggleTask,
     };
   }
 
   keymaps() {
     const bulletListCommand = this.toBulletList();
-    const taskListCommand = this.toggleTaskList();
     const { indent, outdent } = getWwCommands();
-    const toggleTaskCommand = this.toggleTask();
 
     return {
       'Mod-u': bulletListCommand,
       'Mod-U': bulletListCommand,
-      'alt-t': taskListCommand,
-      'alt-T': taskListCommand,
       Tab: indent(),
       'Shift-Tab': outdent(),
-      'Shift-Ctrl-x': toggleTaskCommand,
-      'Shift-Ctrl-X': toggleTaskCommand,
     };
   }
 }

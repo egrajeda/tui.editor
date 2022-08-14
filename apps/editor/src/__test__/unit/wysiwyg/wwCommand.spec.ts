@@ -351,7 +351,7 @@ describe('wysiwyg commands', () => {
       expect(wwe.getHTML()).toBe(expected);
     });
 
-    it('should toggle task list item', () => {
+    it('should toggle task to/from list item', () => {
       setTextToEditor('foo\nbar\nbaz');
 
       cmd.exec('selectAll');
@@ -389,6 +389,57 @@ describe('wysiwyg commands', () => {
           </li>
           <li class="task-list-item" data-task="true">
             <p>baz</p>
+          </li>
+        </ul>
+      `;
+
+      expect(wwe.getHTML()).toBe(expected);
+    });
+  });
+
+  describe('toggleTask command', () => {
+    it('should toggle single bullet task list state', () => {
+      setTextToEditor('foo\nbar');
+
+      cmd.exec('selectAll');
+      cmd.exec('taskList');
+
+      wwe.setSelection(3, 3); // from 'foo'
+      cmd.exec('toggleTask');
+
+      const expected = oneLineTrim`
+        <ul>
+          <li class="task-list-item checked" data-task="true" data-task-checked="true">
+            <p>foo</p>
+          </li>
+          <li class="task-list-item" data-task="true">
+            <p>bar</p>
+          </li>
+        </ul>
+      `;
+
+      expect(wwe.getHTML()).toBe(expected);
+    });
+
+    it('should toggle multiple bullets task list state', () => {
+      setTextToEditor('foo\nbar');
+
+      cmd.exec('selectAll');
+      cmd.exec('taskList');
+
+      wwe.setSelection(3, 3); // from 'foo'
+      cmd.exec('toggleTask');
+
+      wwe.setSelection(3, 12); // from 'foo' to 'bar'
+      cmd.exec('toggleTask');
+
+      const expected = oneLineTrim`
+        <ul>
+          <li class="task-list-item" data-task="true">
+            <p>foo</p>
+          </li>
+          <li class="task-list-item checked" data-task="true" data-task-checked="true">
+            <p>bar</p>
           </li>
         </ul>
       `;
